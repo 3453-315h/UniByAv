@@ -246,7 +246,8 @@ if __name__ == "__main__":
 	.replace("[FUNC_NAME]", func_name) \
 	.replace("[KERNEL32]", kernel32_c_var) \
 	.replace("[DEP]", SetProcessDEPPolicy_c_var) \
-	.replace("[EVASION]", evasion)
+	.replace("[EVASION]", evasion) \
+	.replace("[SHELLCODE_SIZE]", str(len(final) / 4))
 	
 	open("%s.c" % outfile, "wb+").write(exe)
 	
