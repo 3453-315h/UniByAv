@@ -167,7 +167,7 @@ if __name__ == "__main__":
 		
 		variables = helper.get_config("vars")
 		for variable in variables.keys():
-			evasion = evasion.replace("[%s]" % variable, variables[variable])
+			evasion = evasion.replace("[%s]" % variable, str(variables[variable]))
 		
 	if IS_GCC_SET:
 		if not os.path.isfile(gccpath + "mingw32-gcc.exe"):
