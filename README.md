@@ -50,10 +50,6 @@ Self decoding payload written in assembly
 [+]     Generation completed
 ```
 
-# Evasion technique 
-
-Predefined configuation file can be found in configs folder.
-
 # The actual decoder
 
 This tool rely on a simple assembly stub to decode the encoded shellcode. As you can see the key is unknown and it get brute forced at runtime. Since the loop is writting in assembly doing millions of rounds is fairly fast on a modern system.
@@ -84,6 +80,10 @@ Decoder assembly:
   31:   e8 cc ff ff ff          call   2 
   [OPCODE] 
 ```
+
+# Evasion technique 
+
+Predefined configuation file can be found in configs folder.
 
 ###### process
 Check if a specific process is running. If it does not run the binary exit without running the payload.
